@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+##!/usr/bin/env python
+## import some things
+import RPi.GPIO as GPIO
+import time
+import sys
+import Adafruit_SSD1306 as ssd
+from smbus import SMBus
+import Adafruit_GPIO.SPI as SPI
+
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+
+
+# Raspberry Pi pin configuration:
+RST = 24
+# Note the following are only used with SPI:
+DC = 23
+SPI_PORT = 0
+SPI_DEVICE = 0
+
+# 128x32 display with hardware I2C:
+disp = ssd.SSD1306_128_64(rst=RST, i2c_address=0x3C)
+
+
+
+sensor1 = 21 # define the GPIO pin our sensor is attached to
+sensor2 = 20 # define the GPIO pin our sensor is attached to
+
+GPIO.setmode(GPIO.BCM) # set GPIO numbering system to BCM
+GPIO.setup(sensor1,GPIO.IN) # set our sensor pin to an input
+GPIO.setup(sensor2,GPIO.IN) # set our sensor pin to an input
+sample2 = 1000 # how many half revolutions to time
+count2 = 0
+
+start2 = 0
+end2 = 0
+
+
+
+def set_start():
+        global start
+        start = time.time()
+
+def set_end():
+        global end
+        end = time.time()
+
+def set_start2():
+        global start2
+        start2 = time.time()
+
+def set_end2():
+        global end2
+        end2 = time.time()
+
+
+def show1():
+
+
+                # Initialize library.
+                disp.begin()
+
+                # Clear display.
+                disp.clear()
+                disp.display()
+
+                # Create blank image for drawing.
+                # Make sure to create image with mode '1' for 1-bit color.
+                width = disp.width
+                height = disp.height
+                image = Image.new('1', (width, height))
+
+                # Get drawing object to draw on image.
+                draw = ImageDraw.Draw(image)
+
+                # Draw a black filled box to clear the image.
+draw.rectangle((0,0,width,height), outline=0, fill=0)
+
+                # Draw some shapes.
+                # First define some constants to allow easy resizing of shapes.
+                padding = 2
+                shape_width = 20
+                top = padding
+                bottom = height-padding
+               # Move left to right keeping track of the current x position for drawing shapes.
+                x = padding
+
+                # Load default font.
+                font = ImageFont.load_default()
+                 # Alternatively load a TTF font.  Make sure the .ttf font file is in the same directory as the python script!
+                # Some other nice fonts to try: http://www.dafont.com/bitmap.php
+                #font = ImageFont.truetype('Minecraftia.ttf', 8)
+
+                # Write two lines of text.
+                draw.text((x, top),       "Hall Sensor1 ",  font=font, fill=255)
+                draw.text((x, top+10),       "RPM1 : " + str("{:,.0f}".format(rpm)) ,  font=font, fill=255)
+                draw.text((x, top+20),       "Hz1 : " + str("{:,.0f}".format(hz)),  font=font, fill=255)
+                draw.text((x, top+30),       "Hall Sensor2 ",  font=font, fill=255)
+                draw.text((x, top+40),       "RPM2 : " + str("{:,.0f}".format(rpm2)),  font=font, fill=255)
+                draw.text((x, top+50),       "Hz2 : " + str("{:,.0f}".format(hz2)),  font=font, fill=255)
+                # Display image.
+                disp.image(image)
+                disp.display()
+                disp.clear()
+
+def get_rpm(c):
+        global rpm
+        global hz
+        global count #def show2()
+        if not count2:
+                set_start()
+                count = count + 1 # increase counter by 1
+        else:
+                count = count + 1
+        if count==sample:
+                set_end() # create end time
+                delta = end - start # time taken to do a half rotation in seconds
+                delta = delta / 60 # converted to minutes
+                rpm = (sample / delta)  # converted to time for a full single rotation
+                hz = rpm/60
+                print '*****************************'
+                print 'Hall Sensor1'
+                print('RPM1:' "{:,.0f}".format( rpm)) 
+                print ('Hz1:' "{:,.0f}".format( hz) )
+                #show1()
+                count = 0
+
+
+def get_rpm2(c):
+        global rpm2
+        global hz2
+        global count2 # delcear the count variable global so we can edi
+        if not count2:
+                set_start2() # create start time
+                count2 = count2 + 1 # increase counter by 1
+        else:
+                count2 = count2 + 1
+        if count2==sample2:
+                set_end2() # create end time
+                delta2 = end2 - start2 # time taken to do a half rotation in seconds
+                delta2 = delta2 / 60 # converted to minutes
+                rpm2 = (sample2 / delta2)  # converted to time for a full single rotation
+                hz2 = rpm2/60
+                print 'Hall Sensor2'
+                print('RPM2:' "{:,.0f}".format( rpm2) )
+print ('Hz2:' "{:,.0f}".format( hz2) )
+                print '*****************************'
+                show1()
+                count2 = 0 # reset the count t
+
+
+GPIO.add_event_detect(sensor1, GPIO.RISING, callback=get_rpm) # execute the get_rpm function when a HIGH signal is detected
+GPIO.add_event_detect(sensor2, GPIO.RISING, callback=get_rpm2) # execute the get_rpm function when a HIGH signal is detected
+try:
+    # Loop until users quits with CTRL-C
+    while True :
+      time.sleep(0.1)
+except KeyboardInterrupt:
+    # Reset GPIO settings
+    GPIO.cleanup()
+
+

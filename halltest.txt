@@ -1,0 +1,22 @@
+#import the library
+from pyA20.gpio import gpio
+from pyA20.gpio import port
+from time import sleep
+
+#initialize the gpio module
+gpio.init()
+
+#setup the port (same as raspberry pi's gpio.setup() function)
+gpio.setcfg(port.PG6, gpio.INPUT)
+gpio.setcfg(port.PG7, gpio.OUTPUT)
+
+try:
+    print ("Press CTRL+C to exit")
+    while True:
+        if gpio.input(port.PG6):
+                gpio.output(port.PG7, gpio.LOW)
+        else:
+                gpio.output(port.PG7, gpio.HIGH)
+
+except KeyboardInterrupt:
+    print ("Goodbye.")
