@@ -1,0 +1,75 @@
+import OPi.GPIO as GPIO
+import time
+
+import sys
+
+GPIO.setmode(GPIO.BOARD)
+sensor = 12 # define the GPIO pin our sensor is attached to
+
+GPIO.setup(sensor, GPIO.IN)
+GPIO.setup(13, GPIO.OUT)
+GPIO.setup(10, GPIO.OUT)
+GPIO.setup(16, GPIO.OUT)
+GPIO.setwarnings(False)
+
+sample = 1000 # how many half revolutions to time
+count = 0
+
+start = 0
+end = 0
+
+rpm = 0
+hz = 0
+GPIO.output(10,1)
+GPIO.output(16,1)
+def set_start():
+        global start
+        start = time.time()
+
+def set_end():
+        global end
+        end = time.time()
+
+def show():
+         print '*****************************'
+         print 'Hall Sensor1'
+         print('RPM1:' "{:,.0f}".format( rpm))
+         print ('Hz1:' "{:,.0f}".format( hz) )
+         if rpm > 10000 and rpm < 13000:
+                GPIO.output(10,0)
+                GPIO.output(16,1)
+         elif rpm > 13000:
+                GPIO.output(10,1)
+                GPIO.output(16,0)
+GPIO.add_event_detect(sensor, GPIO.RISING) # execute the get_rpm function when a HIGH signal is detected
+try:
+    # Loop until users quits with CTRL-C
+    while True :
+        if not GPIO.event_detected(sensor):
+                         GPIO.output(13,0)
+                         rpm = 0
+                         hz = 0
+        else:
+                        GPIO.output(13,1)
+                        if not count:
+                                #GPIO.output(13,0)
+                                set_start() # create start time
+                                count = count + 1 # increase counter by 1
+                        else:
+ 				#GPIO.output(13,1)
+                                count = count + 1
+                        if count==sample:
+                                set_end() # create end time
+                                delta = end - start # time taken to do a half rotation in seconds
+                                delta = delta / 60 # converted to minutes
+                                rpm = (sample / delta)  # converted to time for a full single rotation
+                                hz = rpm/60
+                                show()
+                                count = 0
+except KeyboardInterrupt:
+    # Reset GPIO settings
+    GPIO.cleanup()
+    GPIO.setwarnings(False)
+
+
+
